@@ -7,10 +7,7 @@ const catagorySchema = new mongoose.Schema({
     },
     description: {
         type: String,
-    },
-    productID:{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Product',
-        required:true
     }
 })
+
+module.exports = mongoose.model('Category', catagorySchema);

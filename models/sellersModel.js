@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const sellersSchema = new mongoose.Schema({
-    userID:{
+    userId:{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: [true, 'Please provide a userID']
@@ -14,25 +14,21 @@ const sellersSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please provide a store description'],
     },
-    totalOrders:{
-        type: Number,
-        default: 0
+    storeAddress:{
+        type: String,
+        required: [true, 'Please provide a store address'],
     },
     myProducts:{
         type: [mongoose.Schema.Types.ObjectId],
         ref: 'Product'
     },
-    totalRevenue:{
-        type: Number,
-        default: 0
-    },
-    soldProducts:{
-        type: Number,
-        default: 0
-    },
-    craetedAt:{
+    createdAt:{
         type: Date,
         default: Date.now
+    },
+    isPermission:{
+        type: Boolean,
+        default: false
     }
 
 })

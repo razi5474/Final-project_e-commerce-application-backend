@@ -12,10 +12,12 @@ const productsSchema = new mongoose.Schema({
     },
     description:{
         type: String,
-        required: [true, 'Please provide product a description']
+        required: [true, 'Please provide product a description'],
+        minlength: [20, 'Description must be at least 20 characters long'],
+        maxlength: [500, 'Description must be at most 500 characters long']
     },
-    image:{
-        type: String,
+    images:{
+        type: [String],
         required: [true, 'Please provide product a image']
     },
     rating:{
@@ -30,9 +32,9 @@ const productsSchema = new mongoose.Schema({
     colors:{
         type: [String],
     },
-    catagoryID:{
+    category:{
         type:mongoose.Schema.Types.ObjectId,
-        ref: 'Catagory',
+        ref: 'Category',
         required: [true, 'Please provide product a catagoryID']
     },
     sellerID:{
@@ -42,18 +44,10 @@ const productsSchema = new mongoose.Schema({
     reviewsID:{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Reviews'
-    },
-    createdAt:{
-        type: Date,
-        default: Date.now
-    },
-    updatedAt:{
-        type: Date,
-        default: Date.now
     }
-
-      
-    })
+    },{
+    timestamps: true,
+    } )
 
     module.exports = mongoose.model('Product', productsSchema)
     

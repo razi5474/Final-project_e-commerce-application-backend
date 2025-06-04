@@ -164,5 +164,5 @@ const deleteUser = async (req,res,next)=>{
         'Internal Server Error'})   
     }
 }
-// logout
+
 module.exports={register,login,profile,logout,updateProfile,deleteUser}
