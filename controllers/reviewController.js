@@ -1,5 +1,5 @@
 const Product = require('../models/productsModel');
-const Review = require('../models/ReviewModel')
+const Review = require('../models/reviewModel')
 
 // Add a review
 const addReview = async (req, res) => {
