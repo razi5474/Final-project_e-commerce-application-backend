@@ -78,8 +78,8 @@ const login = async (req,res,next)=>{
         const token = createToken(userExists._id,userExists.role)
         res.cookie("token",token,{
             httpOnly:true,
-            secure:true,
-            sameSite:"none",
+            secure:process.env.NODE_ENV === 'PRODUCTION',
+            sameSite:"Strict",
             maxAge: 24*60*60*1000
         })
 
@@ -164,5 +164,12 @@ const deleteUser = async (req,res,next)=>{
         'Internal Server Error'})   
     }
 }
+const checkUser = async(req,res,next)=>{
+    try {
+        res.json({message: "User is authenticated",loggedinUser:req.user.id });
+    } catch (error) {
+        res.status(error.status||500).json({error:error.message ||"internal server error"})
+    }
+}
 
-module.exports={register,login,profile,logout,updateProfile,deleteUser}
+module.exports={register,login,profile,logout,updateProfile,deleteUser,checkUser}

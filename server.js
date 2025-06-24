@@ -1,4 +1,5 @@
 const express = require('express')
+const cors = require('cors')
 const app = express()
 require('dotenv').config() 
 const port = process.env.PORT
@@ -14,6 +15,12 @@ app.get('/', (req, res) => {
 
 app.use(express.json())
 app.use(cookieParser())
+const clientUrl = process.env.CLIENT_DOMAIN
+const clientProdUrl = process.env.PROD_CLIENT_DOMAIN
+app.use(cors({
+  origin:[clientUrl,clientProdUrl],
+  credentials: true
+}))
 app.use('/api', Apirouter)  
 
 connectDB()

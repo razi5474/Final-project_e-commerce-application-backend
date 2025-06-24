@@ -10,7 +10,7 @@ reviewRouter.post('/add',authUser,addReview)
 // delete
 reviewRouter.delete('/delete/:reviewId',authUser,deleteUserReview)
 // get rewiews by product id
-reviewRouter.get('/:productId',authUser,getProductReviews)
+reviewRouter.get('/product/:productId',getProductReviews)
 // get average
 reviewRouter.get('/average/:productId',getAverageRating)
 // get all reviews by admin

@@ -1,6 +1,6 @@
 const express = require('express')
 const authSeller = require('../middlewares/authSeller')
-const { createProduct, updateProduct, deleteProduct, getAllProducts, getSingleProduct} = require('../controllers/productController')
+const { createProduct, updateProduct, deleteProduct, getAllProducts, getSingleProduct, getProductsByCategory, searchProducts} = require('../controllers/productController')
 const productRouter = express.Router()
 const upload = require('../middlewares/multer')
 
@@ -20,9 +20,17 @@ productRouter.delete('/delete/:id',authSeller,deleteProduct)
 // /api/product
 productRouter.get('/all',getAllProducts)
 
+// search products by title
+productRouter.get('/search',searchProducts)
+
 // get single product by id
 // /api/product/:id
 productRouter.get('/:id',getSingleProduct)
+
+// get products by category
+// /api/product/category/:categoryId
+productRouter.get('/category/:categoryId',getProductsByCategory)
+
 
 
 

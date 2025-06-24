@@ -191,10 +191,44 @@ const getSellerProducts = async (req, res) => {
     res.status(500).json({ error: error.message || 'Internal Server Error' });
   }
 };
+// GET /api/product/category/:categoryId
+const getProductsByCategory = async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const products = await Product.find({ category: categoryId }).populate('category');
+    res.status(200).json({ success: true, products });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to fetch products by category' });
+  }
+};
+
+// search products by title
+const searchProducts = async (req, res) => {
+  try {
+    const { keyword } = req.query;
+
+    if (!keyword || keyword.trim() === "") {
+      return res.status(400).json({ error: "Search keyword is required" });
+    }
+
+    const regex = new RegExp(keyword, "i"); // case-insensitive match
+    const products = await Product.find({ title: { $regex: regex } })
+      .select("title images") // return only what’s needed for suggestions
+      .limit(10); // limit suggestions
+
+    res.status(200).json({ success: true, products });
+  } catch (error) {
+    console.error("Search Error:", error);
+    res.status(500).json({ error: "Failed to search products" });
+  }
+};
 module.exports = {
     createProduct,
     updateProduct,
     deleteProduct,
     getAllProducts,
-    getSingleProduct
+    getSingleProduct,
+    getSellerProducts,
+    getProductsByCategory,
+    searchProducts
 }
