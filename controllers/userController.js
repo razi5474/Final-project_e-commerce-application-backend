@@ -131,7 +131,11 @@ const updateProfile = async (req,res,next)=>{
 // logout
 const logout = async (req,res,next)=>{
     try {
-        res.clearCookie("token")
+        res.clearCookie("token", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'PRODUCTION',
+        sameSite: "None"
+        });
         res.status(200).json({
             success:true,
             message:"Logout successful"
