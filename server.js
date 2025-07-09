@@ -14,10 +14,18 @@ app.get('/', (req, res) => {
 })
 const clientUrl = process.env.CLIENT_DOMAIN
 const clientProdUrl = process.env.PROD_CLIENT_DOMAIN
+const allowedOrigins = [clientUrl, clientProdUrl];
+
 app.use(cors({
-  origin:[clientUrl,clientProdUrl],
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS not allowed from this origin: " + origin));
+    }
+  },
   credentials: true
-}))
+}));
 app.use(express.json())
 app.use(cookieParser())
 
