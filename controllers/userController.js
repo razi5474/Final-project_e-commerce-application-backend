@@ -136,7 +136,7 @@ const updateProfile = async (req,res,next)=>{
 }
 // logout
 const logout = async (req,res,next)=>{
-    const isProduction = process.env.NODE_ENV === 'PRODUCTION';
+    const isProduction = process.env.NODE_ENV === 'production';
     try {
         res.clearCookie("token", {
         httpOnly: true,
