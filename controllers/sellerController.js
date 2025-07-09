@@ -96,11 +96,14 @@ const loginSeller = async (req,res,next)=>{
 
     // token creation
         const token = createToken(userExists._id,'seller')
+
+        const isProduction = process.env.NODE_ENV === 'production';
+
        res.cookie("token", token, {
         httpOnly: true,
-        secure: false, // ✅ Set to false for local dev
-        sameSite: 'Lax', // ✅ For localhost testing
-        maxAge: 24 * 60 * 60 * 1000,
+        secure: isProduction, // true in production (Render uses HTTPS)
+        sameSite: isProduction ? 'None' : 'Lax', // 'None' needed for cross-origin cookie
+        maxAge: 24 * 60 * 60 * 1000, // 1 day
         });
         const seller = await Seller.findOne({ userId: userExists._id });    
         const userObject = userExists.toObject()
