@@ -176,7 +176,7 @@ const loginSeller = async (req,res,next)=>{
 // seller logout
     const logout = async (req,res,next)=>{
     try {
-        const isProduction = process.env.NODE_ENV === 'PRODUCTION';
+        const isProduction = process.env.NODE_ENV === 'production';
         res.clearCookie("token", {
         httpOnly: true,
         secure: isProduction,
