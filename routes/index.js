@@ -8,6 +8,8 @@ const productRouter = require('./productRoutes')
 const categoryRouter = require('./categoryRoutes')
 const cartRouter = require('./cartRoutes')
 const reviewRouter = require('./reviewRoutes')
+const paymentRouter = require('./paymentRoute')
+const orderRouter = require('./orderRoutes')
 
 //  /api/user
 Apirouter.use('/user', userRouter)
@@ -30,5 +32,9 @@ Apirouter.use('/cart',cartRouter)
 // api/review
 Apirouter.use('/review',reviewRouter)
 
+// api/payment
+Apirouter.use('/payment',paymentRouter)
+
+Apirouter.use('/order',orderRouter)
 
 module.exports = Apirouter

@@ -30,7 +30,7 @@ sellerRouter.delete('/delete/:sellerId',authAdmin,deleteseller)
 
 // check seller authentication
 // /api/seller/check-seller
-sellerRouter.get('check-seller',authSeller,checkSeller)
+sellerRouter.get('/check-seller',authSeller,checkSeller)
 
 
 

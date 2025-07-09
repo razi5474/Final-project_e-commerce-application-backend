@@ -65,7 +65,10 @@ const login = async (req,res,next)=>{
         if(!userExists){
             return res.status(400).json({error:"User not found"})
         }
-
+     // ✅ Blocked check
+        if (userExists.isBlocked) {
+            return res.status(403).json({ error: "Your account is blocked. Please contact support." });
+        }
     // password compare
         const passwordMatch = await bcrypt.compare(password,
         userExists.password)
@@ -74,14 +77,17 @@ const login = async (req,res,next)=>{
            return res.status(400).json({error:"invalid password"}) 
         }
 
+   
+
     // token creation
         const token = createToken(userExists._id,userExists.role)
-        res.cookie("token",token,{
-            httpOnly:true,
-            secure:process.env.NODE_ENV === 'PRODUCTION',
-            sameSite:"None",
-            maxAge: 24*60*60*1000
-        })
+        res.cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // ✅ false in dev
+        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+        maxAge: 24 * 60 * 60 * 1000,
+        });
+        
 
         const userObject = userExists.toObject()
         delete userObject.password
@@ -130,11 +136,12 @@ const updateProfile = async (req,res,next)=>{
 }
 // logout
 const logout = async (req,res,next)=>{
+    const isProduction = process.env.NODE_ENV === 'PRODUCTION';
     try {
         res.clearCookie("token", {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'PRODUCTION',
-        sameSite: "None"
+        secure: isProduction,
+        sameSite: isProduction ? "None" : "Lax",
         });
         res.status(200).json({
             success:true,
@@ -168,12 +175,16 @@ const deleteUser = async (req,res,next)=>{
         'Internal Server Error'})   
     }
 }
-const checkUser = async(req,res,next)=>{
+const checkUser = async (req, res, next) => {
     try {
-        res.json({message: "User is authenticated",loggedinUser:req.user.id });
+        const user = await User.findById(req.user.id).select('-password');
+        if (!user) return res.status(404).json({ error: "User not found" });
+        const userObj = user.toObject();
+        res.json({ message: "User is authenticated", userObject: userObj });
     } catch (error) {
-        res.status(error.status||500).json({error:error.message ||"internal server error"})
+        res.status(error.status || 500).json({ error: error.message || "Internal server error" });
     }
 }
+
 
 module.exports={register,login,profile,logout,updateProfile,deleteUser,checkUser}

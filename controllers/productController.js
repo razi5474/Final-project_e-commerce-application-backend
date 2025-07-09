@@ -1,11 +1,12 @@
 const Product = require('../models/productsModel')
 const { cloudinaryInstance } = require('../config/cloudinary');
+const Seller = require('../models/sellersModel')
 
 
 // Create a new product
 const createProduct = async (req, res,next) => {
     try {
-        const {title,price,description,rating,stock,colors,category} = req.body || {}
+        const {title,price,offerPrice,description,rating,stock,colors,category} = req.body || {}
 
         // Ensure the user is seller or admin
         if (req.user.role !== 'seller' && req.user.role !== 'admin') {
@@ -33,24 +34,39 @@ const createProduct = async (req, res,next) => {
 
         // console.log(cloudinaryResults)
 
-        const sellerId = req.user.id
+        const sellerID = req.user.role === 'seller' ? req.user._id : undefined;
         
         const imageUrls = cloudinaryResults.map(result => result.url);
+
+         // ✅ Convert colors to array if it’s a comma-separated string
+        const colorsArray =
+          typeof colors === 'string'
+            ? colors.split(',').map(c => c.trim()).filter(Boolean)
+            : Array.isArray(colors)
+            ? colors
+            : [];
 
         const newProduct = new Product({
             title,
             price,
+            offerPrice: offerPrice || 0,
             description,
             rating: rating || 0,
             stock,
-            colors: colors || [],
+            colors: colorsArray || [],
             images: imageUrls,
-            sellerId: sellerId,
+            ...(sellerID && { sellerID }),
             category
         })
         // save product to db
         await newProduct.save()
         
+         // 🟡 OPTIONAL: Push product to seller’s `myProducts` array
+        await Seller.findOneAndUpdate(
+            { userId: req.user._id }, // match seller
+            { $push: { myProducts: newProduct._id } }, // add product
+            { new: true }
+        );
 
         res.status(200).json({
             success:true,
@@ -65,59 +81,93 @@ const createProduct = async (req, res,next) => {
 }
 
 // update product
-   const updateProduct = async (req, res) => {
-    try {
-         const { id } = req.params;
-        const { title, price, description, rating, stock, colors, category } = req.body || {};
-        const userRole = req.user.role;
+  const updateProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, price, description, rating, stock, colors, category, sellerID } = req.body || {};
+    const userRole = req.user.role;
 
-         // Find product first
-         const product = await Product.findById(id);
-         if (!product) return res.status(404).json({ error: 'Product not found' });
+    // 🔍 Find product first
+    const product = await Product.findById(id);
+    if (!product) return res.status(404).json({ error: 'Product not found' });
 
-          // Check if seller is the owner
-          if (userRole === 'seller' && (!product.sellerID || product.sellerID.toString() !== req.user.id)) {
-          return res.status(403).json({ error: 'Not authorized to update this product' });
-          }
+    // 🔐 Check if seller is owner of this product
+    if (userRole === 'seller') {
+      const seller = await Seller.findOne({ userId: req.user.id });
 
-
-        // Only admin or seller can update
-        if (userRole!== 'seller' && req.user.role !== 'admin') {
-            return res.status(403).json({ error: 'Only sellers or admin can update products' });
-        }
-
-         const updatedData = {
-            title,
-            price,
-            description,
-            rating,
-            stock,
-            colors,
-            category
-        };
-        // Handle new images
-        if (req.files && req.files.length > 0) {
-            const cloudinaryResponse = req.files.map(file =>
-                cloudinaryInstance.uploader.upload(file.path)
-            );
-            const cloudinaryResults = await Promise.all(cloudinaryResponse);
-            const imageUrls = cloudinaryResults.map(result => result.url);
-            updatedData.images = imageUrls;
-        }
-
-        const updatedProduct = await Product.findByIdAndUpdate(id, updatedData, { new: true });
-
-        if (!updatedProduct) {
-            return res.status(404).json({ error: 'Product not found' });
-        }
-
-        res.status(200).json({ success: true, message: 'Product updated successfully', product: updatedProduct });
-
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({ error: error.message || 'Internal Server Error' });
+      if (!seller) {
+        return res.status(403).json({ error: 'Seller not found' });
+      }
+      console.log("Product sellerID:", product.sellerID.toString());
+      console.log("Logged-in Seller ID:", seller._id.toString());
+      if (product.sellerID.toString() !== seller._id.toString()) {
+        return res.status(403).json({ error: 'Not authorized to update this product' });
+      }
     }
-   } 
+    // 🔐 Only seller or admin can update
+    if (userRole !== 'seller' && userRole !== 'admin') {
+      return res.status(403).json({ error: 'Only sellers or admin can update products' });
+    }
+
+    // 🎨 Convert colors if string
+    const colorsArray =
+      typeof colors === 'string'
+        ? colors.split(',').map(c => c.trim()).filter(Boolean)
+        : Array.isArray(colors)
+        ? colors
+        : [];
+
+    // ✏️ Construct update object
+    const updatedData = {
+      title,
+      price,
+      description,
+      rating,
+      stock,
+      colors: colorsArray,
+      category,
+    };
+
+    // ✅ Only admin can set sellerID manually
+    if (userRole === 'admin' && sellerID) {
+      updatedData.sellerID = sellerID;
+    }
+
+    // 🖼️ Upload new images if any
+    if (req.files && req.files.length > 0) {
+      const cloudinaryResponse = req.files.map(file =>
+        cloudinaryInstance.uploader.upload(file.path)
+      );
+      const cloudinaryResults = await Promise.all(cloudinaryResponse);
+      const imageUrls = cloudinaryResults.map(result => result.url);
+      updatedData.images = imageUrls;
+    }
+
+    // ✅ Update and populate sellerID for visibility
+    const updatedProduct = await Product.findByIdAndUpdate(id, updatedData, {
+      new: true,
+    }).populate('sellerID');
+
+    console.log('Updated Product:', updatedProduct);
+
+    if (!updatedProduct) {
+      return res.status(404).json({ error: 'Product not found after update' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Product updated successfully',
+      product: updatedProduct,
+    });
+
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ error: error.message || 'Internal Server Error' });
+  }
+};
+ 
    // Delete a product
     const deleteProduct = async (req, res) => {
     try {
@@ -154,8 +204,32 @@ const createProduct = async (req, res,next) => {
 // Get all products
 const getAllProducts = async (req, res) => {
   try {
-    const products = await Product.find().populate('category');
-    res.status(200).json({ success: true, products });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || '';
+    const sortField = req.query.sort || 'createdAt'; // or 'price', 'title'
+    const sortOrder = req.query.order === 'desc' ? -1 : 1;
+
+    const query = {
+      title: { $regex: search, $options: 'i' }, // case-insensitive search
+    };
+
+    const total = await Product.countDocuments(query);
+
+    const products = await Product.find(query)
+      .populate('category')
+      .populate('sellerID')
+      .sort({ [sortField]: sortOrder })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    res.status(200).json({
+      success: true,
+      products,
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -177,20 +251,32 @@ const getSingleProduct = async (req, res) => {
 // Get products created by the logged-in seller
 const getSellerProducts = async (req, res) => {
   try {
-    // Only seller can access
     if (req.user.role !== 'seller') {
       return res.status(403).json({ error: 'Only sellers can view their products' });
     }
 
-    const sellerId = req.user.id;
-    const products = await Product.find({ sellerId }).populate('category');
+    // ✅ Step 1: Find seller using the logged-in user's ID
+    const seller = await Seller.findOne({ userId: req.user.id });
 
+    if (!seller) {
+      return res.status(404).json({ error: 'Seller not found' });
+    }
+
+    const sellerID = seller._id;
+    console.log("Fetching products for sellerID:", sellerID);
+
+    // ✅ Step 2: Fetch products with that sellerID
+    const products = await Product.find({ sellerID }).populate('category');
+
+    console.log("Products found:", products.length);
     res.status(200).json({ success: true, products });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: error.message || 'Internal Server Error' });
   }
 };
+
 // GET /api/product/category/:categoryId
 const getProductsByCategory = async (req, res) => {
   try {

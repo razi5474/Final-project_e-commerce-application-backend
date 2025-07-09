@@ -12,15 +12,16 @@ const cookieParser = require('cookie-parser')
 app.get('/', (req, res) => {
   res.send('Hello World!')
 })
-
-app.use(express.json())
-app.use(cookieParser())
 const clientUrl = process.env.CLIENT_DOMAIN
 const clientProdUrl = process.env.PROD_CLIENT_DOMAIN
 app.use(cors({
   origin:[clientUrl,clientProdUrl],
   credentials: true
 }))
+app.use(express.json())
+app.use(cookieParser())
+
+
 app.use('/api', Apirouter)  
 
 connectDB()

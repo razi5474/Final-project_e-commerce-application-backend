@@ -10,6 +10,10 @@ const productsSchema = new mongoose.Schema({
         type:Number,
         required: [true, 'Please provide product a price']
     },
+    offerPrice: {
+    type: Number,
+    default: 0,
+    },
     description:{
         type: String,
         required: [true, 'Please provide product a description'],

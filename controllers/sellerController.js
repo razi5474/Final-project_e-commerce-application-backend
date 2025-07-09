@@ -75,7 +75,10 @@ const loginSeller = async (req,res,next)=>{
         if(!userExists || userExists.role !== 'seller'){
             return res.status(400).json({error:"seller not found or invalid role"})
         }
-
+    // ✅ Check if blocked
+    if (userExists.isBlocked) {
+      return res.status(403).json({ error: "Your account is blocked by admin" });
+    }
     // password compare
         const passwordMatch = await bcrypt.compare(password,
         userExists.password)
@@ -93,12 +96,12 @@ const loginSeller = async (req,res,next)=>{
 
     // token creation
         const token = createToken(userExists._id,'seller')
-        res.cookie("token",token,{
-            httpOnly:true,
-            secure:true,
-            sameSite:"none",
-            maxAge: 24*60*60*1000
-        })
+       res.cookie("token", token, {
+        httpOnly: true,
+        secure: false, // ✅ Set to false for local dev
+        sameSite: 'Lax', // ✅ For localhost testing
+        maxAge: 24 * 60 * 60 * 1000,
+        });
         const seller = await Seller.findOne({ userId: userExists._id });    
         const userObject = userExists.toObject()
         delete userObject.password
@@ -170,7 +173,12 @@ const loginSeller = async (req,res,next)=>{
 // seller logout
     const logout = async (req,res,next)=>{
     try {
-        res.clearCookie("token")
+        const isProduction = process.env.NODE_ENV === 'PRODUCTION';
+        res.clearCookie("token", {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? "None" : "Lax",
+        });
         res.status(200).json({
             success:true,
             message:"seller Logout successful"
@@ -209,15 +217,17 @@ const loginSeller = async (req,res,next)=>{
     }   
 
     // check user autherized
-    const checkSeller =async (req, res, next) => {
-        try {
-            res.json({message: "Seller is authenticated",loggedinUser:req.user.id });
-        } catch (error) {
-            res.status(error.status||500).json({error:error.message || 
-        'Internal Server Error'}) 
-        }
-    } 
-
+    const checkSeller = async (req, res, next) => {
+    try {
+        const user = await User.findById(req.user.id).select('-password');
+        if (!user) return res.status(404).json({ error: "User not found" });
+        const userObj = user.toObject();
+        userObj.role = 'seller'; // Ensure role is set
+        res.json({ message: "Seller is authenticated", userObject: userObj });
+    } catch (error) {
+        res.status(error.status||500).json({error:error.message || 'Internal Server Error'}) 
+    }
+    }
     
 
 module.exports = {
