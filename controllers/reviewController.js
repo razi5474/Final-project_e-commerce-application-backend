@@ -1,5 +1,5 @@
 const Product = require('../models/productsModel');
-const Review = require('../models/ReviewModel')
+const Review = require('../models/reviewModel')
 const Seller = require('../models/sellersModel')
 
 // Add a review
