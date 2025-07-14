@@ -34,7 +34,19 @@ const createProduct = async (req, res,next) => {
 
         // console.log(cloudinaryResults)
 
-        const sellerID = req.user.role === 'seller' ? req.user._id : undefined;
+        let sellerID;
+
+        console.log("req.user from token:", req.user);
+
+        if (req.user.role === 'seller') {
+          const seller = await Seller.findOne({ userId: req.user.id });
+          if (!seller) return res.status(404).json({ error: "Seller not found" });
+          sellerID = seller._id;
+        } else if (req.user.role === 'admin') {
+          if (req.body.sellerID) {
+            sellerID = req.body.sellerID;
+          }
+        }
         
         const imageUrls = cloudinaryResults.map(result => result.url);
 
@@ -63,7 +75,7 @@ const createProduct = async (req, res,next) => {
         
          // 🟡 OPTIONAL: Push product to seller’s `myProducts` array
         await Seller.findOneAndUpdate(
-            { userId: req.user._id }, // match seller
+            { userId: req.user.id }, // match seller
             { $push: { myProducts: newProduct._id } }, // add product
             { new: true }
         );
@@ -177,10 +189,16 @@ const createProduct = async (req, res,next) => {
         const product = await Product.findById(id);
          if (!product) return res.status(404).json({ error: 'Product not found' });
 
-         // Seller can only delete their own product
-         if (userRole === 'seller' && (!product.sellerID || product.sellerID.toString() !== req.user.id)) {
-          return res.status(403).json({ error: 'Not authorized to update this product' });
-          }
+          // 🔐 Seller can only delete their own product
+            if (userRole === 'seller') {
+              const seller = await Seller.findOne({ userId: req.user.id });
+              if (!seller) {
+                return res.status(403).json({ error: 'Seller not found' });
+              }
+              if (!product.sellerID || product.sellerID.toString() !== seller._id.toString()) {
+                return res.status(403).json({ error: 'Not authorized to delete this product' });
+              }
+            } 
 
 
         // Only admin or seller can delete
