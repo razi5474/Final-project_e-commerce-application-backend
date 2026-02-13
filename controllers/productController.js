@@ -4,96 +4,99 @@ const Seller = require('../models/sellersModel')
 
 
 // Create a new product
-const createProduct = async (req, res,next) => {
-    try {
-        const {title,price,offerPrice,description,rating,stock,colors,category} = req.body || {}
+const createProduct = async (req, res, next) => {
+  try {
+    const { title, price, offerPrice, description, rating, stock, colors, category } = req.body || {}
 
-        // Ensure the user is seller or admin
-        if (req.user.role !== 'seller' && req.user.role !== 'admin') {
-            return res.status(403).json({ error: 'Only sellers or admin can create products' });
-        }
-        
-        // Validate input
-        if(!title || !price || !description|| !stock || !category){
-            return res.status(400).json({error:"All fields are required"})
-            
-        // take file deatails from multer
-        }
-        
-        const files = req.files
-        if (!files || files.length === 0) {
-        return res.status(400).json({ error: "At least one file is required" });
-        }
-        // console.log(files)
-
-        // upload an image
-        const cloudinaryResponse =files.map(file =>
-        cloudinaryInstance.uploader.upload(file.path));
-
-        const cloudinaryResults = await Promise.all(cloudinaryResponse);
-
-        // console.log(cloudinaryResults)
-
-        let sellerID;
-
-        console.log("req.user from token:", req.user);
-
-        if (req.user.role === 'seller') {
-          const seller = await Seller.findOne({ userId: req.user.id });
-          if (!seller) return res.status(404).json({ error: "Seller not found" });
-          sellerID = seller._id;
-        } else if (req.user.role === 'admin') {
-          if (req.body.sellerID) {
-            sellerID = req.body.sellerID;
-          }
-        }
-        
-        const imageUrls = cloudinaryResults.map(result => result.url);
-
-         // ✅ Convert colors to array if it’s a comma-separated string
-        const colorsArray =
-          typeof colors === 'string'
-            ? colors.split(',').map(c => c.trim()).filter(Boolean)
-            : Array.isArray(colors)
-            ? colors
-            : [];
-
-        const newProduct = new Product({
-            title,
-            price,
-            offerPrice: offerPrice || 0,
-            description,
-            rating: rating || 0,
-            stock,
-            colors: colorsArray || [],
-            images: imageUrls,
-            ...(sellerID && { sellerID }),
-            category
-        })
-        // save product to db
-        await newProduct.save()
-        
-         // 🟡 OPTIONAL: Push product to seller’s `myProducts` array
-        await Seller.findOneAndUpdate(
-            { userId: req.user.id }, // match seller
-            { $push: { myProducts: newProduct._id } }, // add product
-            { new: true }
-        );
-
-        res.status(200).json({
-            success:true,
-            message:"product created successfully",
-            product:newProduct})
-
-    } catch (error) {
-       console.log(error)
-        res.status(error.status||500).json({error:error.message || 
-        'Internal Server Error'})   
+    // Ensure the user is seller or admin
+    if (req.user.role !== 'seller' && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Only sellers or admin can create products' });
     }
+
+    // Validate input
+    if (!title || !price || !description || !stock || !category) {
+      return res.status(400).json({ error: "All fields are required" })
+
+      // take file deatails from multer
+    }
+
+    const files = req.files
+    if (!files || files.length === 0) {
+      return res.status(400).json({ error: "At least one file is required" });
+    }
+    // console.log(files)
+
+    // upload an image
+    const cloudinaryResponse = files.map(file =>
+      cloudinaryInstance.uploader.upload(file.path));
+
+    const cloudinaryResults = await Promise.all(cloudinaryResponse);
+
+    // console.log(cloudinaryResults)
+
+    let sellerID;
+
+    console.log("req.user from token:", req.user);
+
+    if (req.user.role === 'seller') {
+      const seller = await Seller.findOne({ userId: req.user.id });
+      if (!seller) return res.status(404).json({ error: "Seller not found" });
+      sellerID = seller._id;
+    } else if (req.user.role === 'admin') {
+      if (req.body.sellerID) {
+        sellerID = req.body.sellerID;
+      }
+    }
+
+    const imageUrls = cloudinaryResults.map(result => result.url);
+
+    // ✅ Convert colors to array if it’s a comma-separated string
+    const colorsArray =
+      typeof colors === 'string'
+        ? colors.split(',').map(c => c.trim()).filter(Boolean)
+        : Array.isArray(colors)
+          ? colors
+          : [];
+
+    const newProduct = new Product({
+      title,
+      price,
+      offerPrice: offerPrice || 0,
+      description,
+      rating: rating || 0,
+      stock,
+      colors: colorsArray || [],
+      images: imageUrls,
+      ...(sellerID && { sellerID }),
+      category
+    })
+    // save product to db
+    await newProduct.save()
+
+    // 🟡 OPTIONAL: Push product to seller’s `myProducts` array
+    await Seller.findOneAndUpdate(
+      { userId: req.user.id }, // match seller
+      { $push: { myProducts: newProduct._id } }, // add product
+      { new: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "product created successfully",
+      product: newProduct
+    })
+
+  } catch (error) {
+    console.log(error)
+    res.status(error.status || 500).json({
+      error: error.message ||
+        'Internal Server Error'
+    })
+  }
 }
 
 // update product
-  const updateProduct = async (req, res) => {
+const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
     const { title, price, description, rating, stock, colors, category, sellerID } = req.body || {};
@@ -126,8 +129,8 @@ const createProduct = async (req, res,next) => {
       typeof colors === 'string'
         ? colors.split(',').map(c => c.trim()).filter(Boolean)
         : Array.isArray(colors)
-        ? colors
-        : [];
+          ? colors
+          : [];
 
     // ✏️ Construct update object
     const updatedData = {
@@ -179,45 +182,45 @@ const createProduct = async (req, res,next) => {
       .json({ error: error.message || 'Internal Server Error' });
   }
 };
- 
-   // Delete a product
-    const deleteProduct = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const userRole = req.user.role;
 
-        const product = await Product.findById(id);
-         if (!product) return res.status(404).json({ error: 'Product not found' });
+// Delete a product
+const deleteProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userRole = req.user.role;
 
-          // 🔐 Seller can only delete their own product
-            if (userRole === 'seller') {
-              const seller = await Seller.findOne({ userId: req.user.id });
-              if (!seller) {
-                return res.status(403).json({ error: 'Seller not found' });
-              }
-              if (!product.sellerID || product.sellerID.toString() !== seller._id.toString()) {
-                return res.status(403).json({ error: 'Not authorized to delete this product' });
-              }
-            } 
+    const product = await Product.findById(id);
+    if (!product) return res.status(404).json({ error: 'Product not found' });
 
-
-        // Only admin or seller can delete
-        if (req.user.role !== 'seller' && req.user.role !== 'admin') {
-            return res.status(403).json({ error: 'Only sellers or admin can delete products' });
-        }
-
-        const deletedProduct = await Product.findByIdAndDelete(id);
-
-        if (!deletedProduct) {
-            return res.status(404).json({ error: 'Product not found' });
-        }
-
-        res.status(200).json({ success: true, message: 'Product deleted successfully' });
-
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({ error: error.message || 'Internal Server Error' });
+    // 🔐 Seller can only delete their own product
+    if (userRole === 'seller') {
+      const seller = await Seller.findOne({ userId: req.user.id });
+      if (!seller) {
+        return res.status(403).json({ error: 'Seller not found' });
+      }
+      if (!product.sellerID || product.sellerID.toString() !== seller._id.toString()) {
+        return res.status(403).json({ error: 'Not authorized to delete this product' });
+      }
     }
+
+
+    // Only admin or seller can delete
+    if (req.user.role !== 'seller' && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Only sellers or admin can delete products' });
+    }
+
+    const deletedProduct = await Product.findByIdAndDelete(id);
+
+    if (!deletedProduct) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    res.status(200).json({ success: true, message: 'Product deleted successfully' });
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
 };
 // Get all products
 const getAllProducts = async (req, res) => {
@@ -299,8 +302,27 @@ const getSellerProducts = async (req, res) => {
 const getProductsByCategory = async (req, res) => {
   try {
     const { categoryId } = req.params;
-    const products = await Product.find({ category: categoryId }).populate('category');
-    res.status(200).json({ success: true, products });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const sortField = req.query.sort || 'createdAt';
+    const sortOrder = req.query.order === 'desc' ? -1 : 1;
+
+    const query = { category: categoryId };
+    const total = await Product.countDocuments(query);
+
+    const products = await Product.find(query)
+      .populate('category')
+      .sort({ [sortField]: sortOrder })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    res.status(200).json({
+      success: true,
+      products,
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch products by category' });
   }
@@ -327,12 +349,12 @@ const searchProducts = async (req, res) => {
   }
 };
 module.exports = {
-    createProduct,
-    updateProduct,
-    deleteProduct,
-    getAllProducts,
-    getSingleProduct,
-    getSellerProducts,
-    getProductsByCategory,
-    searchProducts
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  getAllProducts,
+  getSingleProduct,
+  getSellerProducts,
+  getProductsByCategory,
+  searchProducts
 }

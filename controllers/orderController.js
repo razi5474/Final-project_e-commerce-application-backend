@@ -1,6 +1,6 @@
 const Order = require('../models/ordersModel');
 const Cart = require('../models/cartsModel');
-const Product= require('../models/productsModel')
+const Product = require('../models/productsModel')
 
 const createOrder = async (req, res) => {
   try {
@@ -33,22 +33,22 @@ const createOrder = async (req, res) => {
 
     // ✅ Inject sellerID into each product
     const productsWithSellerID = products.map(item => {
-    const matchedProduct = dbProducts.find(
-      (p) => p._id.toString() === (item.productID._id?.toString() || item.productID.toString())
-    );
+      const matchedProduct = dbProducts.find(
+        (p) => p._id.toString() === (item.productID._id?.toString() || item.productID.toString())
+      );
 
-    if (!matchedProduct) {
-      throw new Error(`Product not found in DB for ID: ${item.productID}`);
-    }
-    const sellerID = matchedProduct.sellerID ? matchedProduct.sellerID : 'admin';
+      if (!matchedProduct) {
+        throw new Error(`Product not found in DB for ID: ${item.productID}`);
+      }
+      const sellerID = matchedProduct.sellerID ? matchedProduct.sellerID : 'admin';
 
-    return {
-      productID: matchedProduct._id,
-      quantity: item.quantity,
-      price: item.price,
-      sellerID
-    };
-  });
+      return {
+        productID: matchedProduct._id,
+        quantity: item.quantity,
+        price: item.price,
+        sellerID
+      };
+    });
 
 
 
@@ -61,7 +61,7 @@ const createOrder = async (req, res) => {
     // Create new order
     const newOrder = await Order.create({
       user: userId,
-      products:productsWithSellerID,
+      products: productsWithSellerID,
       shippingAddress: {
         fullName,
         phone,
@@ -94,7 +94,8 @@ const getUserOrders = async (req, res) => {
   try {
     const userId = req.user.id;
     const orders = await Order.find({ user: userId })
-    .populate('products.productID');
+      .populate('products.productID')
+      .sort({ createdAt: -1 });
     res.status(200).json({ success: true, orders });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch orders' });
@@ -146,7 +147,7 @@ const getSellerOrders = async (req, res) => {
     totalPages: Math.ceil(total / limit),
     currentPage: Number(page),
   });
-  
+
 };
 
 
@@ -243,4 +244,4 @@ const adminDeleteOrder = async (req, res) => {
 
 
 
-module.exports = { createOrder,getUserOrders,getLatestAddress,getSellerOrders,updateOrderStatus,getAllOrders,adminUpdateOrderStatus,adminDeleteOrder };
+module.exports = { createOrder, getUserOrders, getLatestAddress, getSellerOrders, updateOrderStatus, getAllOrders, adminUpdateOrderStatus, adminDeleteOrder };
